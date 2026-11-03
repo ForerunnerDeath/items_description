@@ -1,5 +1,3 @@
-import json
-
 import pytest
 from pydantic import ValidationError
 
@@ -15,10 +13,12 @@ VALID_OUTPUT: dict[str, object] = {
 
 
 def test_valid_json_is_parsed_and_preserves_russian_content() -> None:
-    result = LLMGeneratedContent.model_validate_json(
-        json.dumps(VALID_OUTPUT, ensure_ascii=False)
-    )
+    initial = LLMGeneratedContent.model_validate(VALID_OUTPUT)
+    json_text = initial.model_dump_json()
 
+    result = LLMGeneratedContent.model_validate_json(json_text)
+
+    assert "БП15Б-Д2-24" in json_text
     assert result.model_dump() == VALID_OUTPUT
 
 
