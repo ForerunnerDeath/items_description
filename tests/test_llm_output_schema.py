@@ -3,7 +3,6 @@ from pydantic import ValidationError
 
 from app.schemas import LLMGeneratedContent
 
-
 VALID_OUTPUT: dict[str, object] = {
     "seo_title": "БП15Б-Д2-24 — блок питания ОВЕН",
     "seo_description": "Описание блока питания на основе исходных данных.",
