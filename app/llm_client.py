@@ -2,7 +2,15 @@
 
 from typing import Protocol
 
-from openai import AsyncOpenAI, OpenAIError
+from openai import (
+    AsyncOpenAI,
+    ContentFilterFinishReasonError,
+    LengthFinishReasonError,
+    OpenAIError,
+)
+from pydantic import ValidationError
+
+from app.schemas import LLMGeneratedContent
 
 
 class LLMClientError(Exception):
@@ -13,6 +21,10 @@ class LLMClientError(Exception):
 
 class LLMClient(Protocol):
     async def generate(self, *, system_prompt: str, user_prompt: str) -> str: ...
+
+    async def generate_structured(
+        self, *, system_prompt: str, user_prompt: str
+    ) -> LLMGeneratedContent: ...
 
     async def close(self) -> None: ...
 
@@ -79,6 +91,69 @@ class OpenAICompatibleLLMClient:
             )
 
         return content.strip()
+
+    async def generate_structured(
+        self, *, system_prompt: str, user_prompt: str
+    ) -> LLMGeneratedContent:
+        """Ask the provider to enforce the Pydantic JSON Schema.
+
+        This checks the response structure, not SEO quality or factual accuracy.
+        The backend must support strict JSON Schema response_format.
+        """
+        try:
+            response = await self._client.chat.completions.parse(
+                model=self._model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                response_format=LLMGeneratedContent,
+                temperature=0,
+                max_tokens=self._max_tokens,
+            )
+        except LengthFinishReasonError as exc:
+            raise LLMClientError(
+                "LLM response was truncated by the token limit",
+                error_type="IncompleteResponse",
+            ) from exc
+        except ContentFilterFinishReasonError as exc:
+            raise LLMClientError(
+                "LLM response was blocked by the content filter",
+                error_type="FilteredResponse",
+            ) from exc
+        except ValidationError as exc:
+            raise LLMClientError(
+                "LLM response does not match the required schema",
+                error_type="InvalidResponse",
+            ) from exc
+        except OpenAIError as exc:
+            raise LLMClientError(str(exc), error_type=type(exc).__name__) from exc
+
+        if not response.choices:
+            raise LLMClientError("LLM returned no choices", error_type="EmptyResponse")
+
+        choice = response.choices[0]
+        if choice.finish_reason == "length":
+            raise LLMClientError(
+                "LLM response was truncated by the token limit",
+                error_type="IncompleteResponse",
+            )
+        if choice.finish_reason == "content_filter":
+            raise LLMClientError(
+                "LLM response was blocked by the content filter",
+                error_type="FilteredResponse",
+            )
+        if choice.message.refusal:
+            raise LLMClientError("LLM refused the request", error_type="Refusal")
+
+        parsed = choice.message.parsed
+        if parsed is None:
+            raise LLMClientError(
+                "LLM returned no structured content",
+                error_type="EmptyResponse",
+            )
+
+        return parsed
 
     async def close(self) -> None:
         await self._client.close()
