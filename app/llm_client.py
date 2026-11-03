@@ -73,7 +73,10 @@ class OpenAICompatibleLLMClient:
 
         content = choice.message.content
         if not content or not content.strip():
-            raise LLMClientError("LLM returned empty content", error_type="EmptyResponse")
+            raise LLMClientError(
+                "LLM returned empty content",
+                error_type="EmptyResponse",
+            )
 
         return content.strip()
 
