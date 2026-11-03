@@ -119,7 +119,7 @@ def test_valid_result_copies_specs_without_llm_modification() -> None:
 
 def test_invalid_seo_result_is_returned_for_review_without_silent_fixing() -> None:
     prepared = prepare_product(
-        ProductInput(name="Прибор", specs={"Напряжение": "12 В"})
+        ProductInput(name="БП15Б-Д2-24", specs={"Напряжение": "24 В"})
     )
     content = make_content(seo_title="Т" * 71, seo_description="кратко")
 
@@ -129,20 +129,23 @@ def test_invalid_seo_result_is_returned_for_review_without_silent_fixing() -> No
     assert response.seo_title == "Т" * 71
     assert response.seo_description == "кратко"
     assert len(response.warnings) == 2
-    assert response.characteristics == {"Напряжение": "12 В"}
+    assert response.characteristics == {"Напряжение": "24 В"}
     assert response.missing_fields == ["manufacturer", "description"]
 
 
 def test_preparation_warning_is_preserved_and_marks_result_for_review() -> None:
     prepared = prepare_product(
-        ProductInput(name="Прибор", specs={" ": "невалидная пара", "Ток": "1 А"})
+        ProductInput(
+            name="БП15Б-Д2-24",
+            specs={" ": "невалидная пара", "Напряжение": "24 В"},
+        )
     )
 
     response = build_generation_response(prepared, make_content())
 
     assert response.status == "needs_review"
     assert response.warnings == ["Характеристика с пустым названием пропущена."]
-    assert response.characteristics == {"Ток": "1 А"}
+    assert response.characteristics == {"Напряжение": "24 В"}
 
 
 def test_sparse_product_returns_insufficient_data_without_llm() -> None:

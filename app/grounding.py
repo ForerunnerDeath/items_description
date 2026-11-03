@@ -76,7 +76,10 @@ def _output_text(content: LLMGeneratedContent) -> str:
 
 
 def _numbers(text: str) -> set[Decimal]:
-    return {Decimal(match.group().replace(",", ".")) for match in _NUMBER_RE.finditer(text)}
+    return {
+        Decimal(match.group().replace(",", "."))
+        for match in _NUMBER_RE.finditer(text)
+    }
 
 
 def _quantities(text: str) -> set[tuple[Decimal, str]]:
@@ -112,7 +115,9 @@ def validate_grounding(
     for number in sorted(missing_numbers):
         warnings.append(f"Число {number} отсутствует в исходных данных.")
 
-    source_ip = {match.group().upper().replace(" ", "") for match in _IP_RE.finditer(source)}
+    source_ip = {
+        match.group().upper().replace(" ", "") for match in _IP_RE.finditer(source)
+    }
     output_ip = {
         match.group().upper().replace(" ", "") for match in _IP_RE.finditer(generated)
     }

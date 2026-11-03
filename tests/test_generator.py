@@ -143,7 +143,11 @@ async def test_sparse_product_does_not_call_llm() -> None:
 @pytest.mark.asyncio
 async def test_unfixable_preprocessing_warning_does_not_trigger_retries() -> None:
     client = FakeLLMClient([make_content()])
-    product = ProductInput(name="Прибор", specs={" ": "bad", "Ток": "1 А"})
+    product = ProductInput(
+        name="БП15Б-Д2-24",
+        manufacturer="ОВЕН",
+        specs={" ": "bad", "Напряжение": "24 В"},
+    )
 
     response = await generate_product_description(product, client)
 
