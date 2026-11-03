@@ -151,30 +151,27 @@ async def test_truncated_generation_is_rejected() -> None:
 
 
 @pytest.mark.parametrize(
-    "overrides",
+    ("model", "api_key", "base_url", "max_tokens", "timeout_seconds"),
     [
-        {"model": ""},
-        {"model": "   "},
-        {"max_tokens": 0},
-        {"timeout_seconds": 0},
-        {"api_key": "", "base_url": ""},
+        ("", "key", "", 512, 10.0),
+        ("   ", "key", "", 512, 10.0),
+        ("model", "key", "", 0, 10.0),
+        ("model", "key", "", 512, 0.0),
+        ("model", "", "", 512, 10.0),
     ],
 )
-def test_invalid_configuration_is_rejected(overrides: dict[str, object]) -> None:
-    options: dict[str, object] = {
-        "model": "model",
-        "api_key": "key",
-        "base_url": "",
-        "max_tokens": 512,
-        "timeout_seconds": 10.0,
-    }
-    options.update(overrides)
-
+def test_invalid_configuration_is_rejected(
+    model: str,
+    api_key: str,
+    base_url: str,
+    max_tokens: int,
+    timeout_seconds: float,
+) -> None:
     with pytest.raises(ValueError):
         OpenAICompatibleLLMClient(
-            model=str(options["model"]),
-            api_key=str(options["api_key"]),
-            base_url=str(options["base_url"]),
-            max_tokens=int(options["max_tokens"]),  # pyright: ignore[reportArgumentType]
-            timeout_seconds=float(options["timeout_seconds"]),  # pyright: ignore[reportArgumentType]
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            max_tokens=max_tokens,
+            timeout_seconds=timeout_seconds,
         )
