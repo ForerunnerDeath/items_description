@@ -77,8 +77,7 @@ def _output_text(content: LLMGeneratedContent) -> str:
 
 def _numbers(text: str) -> set[Decimal]:
     return {
-        Decimal(match.group().replace(",", "."))
-        for match in _NUMBER_RE.finditer(text)
+        Decimal(match.group().replace(",", ".")) for match in _NUMBER_RE.finditer(text)
     }
 
 
@@ -106,9 +105,7 @@ def validate_grounding(
     source_quantities = _quantities(source)
     output_quantities = _quantities(generated)
     for amount, unit in sorted(output_quantities - source_quantities):
-        warnings.append(
-            f"Значение {amount} {unit} не подтверждено исходными данными."
-        )
+        warnings.append(f"Значение {amount} {unit} не подтверждено исходными данными.")
 
     paired_numbers = {amount for amount, _ in output_quantities}
     missing_numbers = _numbers(generated) - _numbers(source) - paired_numbers
@@ -126,8 +123,6 @@ def validate_grounding(
 
     for label, pattern in _CLAIMS:
         if pattern.search(generated) and not pattern.search(source):
-            warnings.append(
-                f"Утверждение о {label} не подтверждено исходными данными."
-            )
+            warnings.append(f"Утверждение о {label} не подтверждено исходными данными.")
 
     return warnings

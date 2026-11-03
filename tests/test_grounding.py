@@ -73,9 +73,7 @@ def test_unsupported_values_are_flagged(text: str, expected: str) -> None:
         ("Выгодная цена.", "цене"),
     ],
 )
-def test_commercial_claim_without_source_is_flagged(
-    statement: str, claim: str
-) -> None:
+def test_commercial_claim_without_source_is_flagged(statement: str, claim: str) -> None:
     warnings = validate_grounding(
         prepare_product(source_product()),
         make_content(commercial_block=statement),
