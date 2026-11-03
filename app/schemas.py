@@ -20,6 +20,25 @@ class ProductInput(BaseModel):
     description: str = ""
 
 
+class LLMGeneratedContent(BaseModel):
+    """Only LLM-owned fields; technical facts remain under application control.
+
+    Structural correctness is checked here. SEO limits and factual grounding
+    are validated in a separate stage.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        strict=True,
+        str_strip_whitespace=True,
+    )
+
+    seo_title: str
+    seo_description: str
+    search_queries: list[str]
+    commercial_block: str
+
+
 class GenerationResponse(BaseModel):
     """Public result, including incomplete and review-required generations.
 
