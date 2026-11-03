@@ -1,5 +1,6 @@
 """Deterministic SEO checks and safe assembly of the public response."""
 
+from app.grounding import validate_grounding
 from app.preprocessor import PreparedProduct
 from app.schemas import GenerationResponse, LLMGeneratedContent
 
@@ -34,14 +35,21 @@ def validate_seo_content(content: LLMGeneratedContent) -> list[str]:
     return warnings
 
 
+def validate_generated_content(
+    prepared: PreparedProduct, content: LLMGeneratedContent
+) -> list[str]:
+    """Combine mechanical SEO checks with lexical grounding warnings."""
+    return [*validate_seo_content(content), *validate_grounding(prepared, content)]
+
+
 def build_generation_response(
     prepared: PreparedProduct,
     generated: LLMGeneratedContent | None = None,
 ) -> GenerationResponse:
-    """Copy trusted specifications and annotate any basic SEO defects.
+    """Copy trusted specifications and annotate SEO and grounding concerns.
 
-    The status "generated" means mechanical checks passed, not that the LLM
-    prose has been fact-checked. Grounding checks follow in a separate stage.
+    The status "generated" means these checks passed, not that every statement
+    has been independently verified or semantically fact-checked.
     """
     if not prepared.can_generate:
         if generated is not None:
@@ -56,7 +64,7 @@ def build_generation_response(
     if generated is None:
         raise ValueError("LLM content is required when product facts are available")
 
-    warnings = [*prepared.warnings, *validate_seo_content(generated)]
+    warnings = [*prepared.warnings, *validate_generated_content(prepared, generated)]
     return GenerationResponse(
         status="needs_review" if warnings else "generated",
         seo_title=generated.seo_title,

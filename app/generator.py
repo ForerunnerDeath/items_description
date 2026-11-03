@@ -4,7 +4,7 @@ from app.llm_client import LLMClient, LLMClientError
 from app.preprocessor import prepare_product
 from app.prompts import SYSTEM_PROMPT, build_user_prompt
 from app.schemas import GenerationResponse, ProductInput
-from app.validator import build_generation_response, validate_seo_content
+from app.validator import build_generation_response, validate_generated_content
 
 MAX_RETRIES = 2
 
@@ -20,7 +20,7 @@ def _retry_prompt(original_prompt: str, issues: list[str]) -> str:
     feedback = "\n".join(f"- {issue}" for issue in issues)
     return (
         f"{original_prompt}\n\n"
-        "Предыдущий результат не прошёл проверку формальных требований.\n"
+        "Предыдущий результат не прошёл проверку требований.\n"
         "Создай новый полный JSON-ответ и исправь все перечисленные ошибки.\n"
         "Сохраняй факты из исходного JSON, ничего не придумывай. "
         "Если данных недостаточно для соблюдения ограничений, "
@@ -60,7 +60,7 @@ async def generate_product_description(
             continue
 
         response = build_generation_response(prepared, generated)
-        issues = validate_seo_content(generated)
+        issues = validate_generated_content(prepared, generated)
         if not issues or retries >= MAX_RETRIES:
             return response
 
