@@ -231,3 +231,21 @@ async def test_nonretryable_errors_propagate_without_retry(error_type: str) -> N
         await generate_product_description(sample_product(), client)
 
     assert len(client.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_feed_only_generates_once_without_retrying_missing_specs() -> None:
+    product = ProductInput(
+        name="testo 830-T1",
+        manufacturer="Testo",
+        specs={"Артикул": "0560 8311", "Код товара": "12387"},
+        description="пирометр, инфракрасный термометр с лазерным целеуказателем",
+    )
+    client = FakeLLM([make_content()])
+
+    result = await generate_product_description(product, client)
+
+    assert result.status == "needs_review"
+    assert result.missing_fields == ["technical_specs"]
+    assert len(client.calls) == 1
+    assert result.seo_description is not None
