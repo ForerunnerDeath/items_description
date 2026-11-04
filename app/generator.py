@@ -38,7 +38,7 @@ async def generate_product_description(
     model responses get bounded retries; provider/refusal errors propagate.
     """
     prepared = prepare_product(product)
-    if not prepared.can_generate:
+    if prepared.blocked or not prepared.can_generate:
         return build_generation_response(prepared)
 
     original_prompt = build_user_prompt(prepared)

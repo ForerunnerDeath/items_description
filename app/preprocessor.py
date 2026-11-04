@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from app.schemas import ProductInput
+from app.security import contains_instruction_markers
 
 _MISSING_VALUES = frozenset(
     {"", "-", "—", "–", "н/д", "нет данных", "данных нет", "не указано", "неизвестно"}
@@ -23,6 +24,7 @@ class PreparedProduct:
     missing_fields: tuple[str, ...]
     warnings: tuple[str, ...]
     can_generate: bool
+    blocked: bool = False
 
 
 def prepare_product(product: ProductInput) -> PreparedProduct:
@@ -34,6 +36,17 @@ def prepare_product(product: ProductInput) -> PreparedProduct:
     """
     missing_fields: list[str] = []
     warnings: list[str] = []
+    raw_fields = [product.name, product.manufacturer or "", product.description]
+    for key, value in product.specs.items():
+        raw_fields.extend((key, value))
+
+    blocked = any(contains_instruction_markers(text) for text in raw_fields)
+    if blocked:
+        warnings.append(
+            "В исходных данных обнаружены признаки управляющих инструкций; "
+            "требуется ручная проверка."
+        )
+
     manufacturer = (product.manufacturer or "").strip() or None
     description = product.description.strip()
     known_specs: dict[str, str] = {}
@@ -78,4 +91,5 @@ def prepare_product(product: ProductInput) -> PreparedProduct:
         missing_fields=tuple(missing_fields),
         warnings=tuple(warnings),
         can_generate=can_generate,
+        blocked=blocked,
     )

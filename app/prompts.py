@@ -40,6 +40,8 @@ USER_PROMPT_PREFIX = (
 
 def build_user_prompt(prepared: PreparedProduct) -> str:
     """Serialize the cleaned product without interpreting its text as instructions."""
+    if prepared.blocked:
+        raise ValueError("Cannot build prompt from suspicious product data")
     if not prepared.can_generate:
         raise ValueError("Cannot build generation prompt without product facts")
 

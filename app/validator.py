@@ -3,6 +3,7 @@
 from app.grounding import validate_grounding
 from app.preprocessor import PreparedProduct
 from app.schemas import GenerationResponse, LLMGeneratedContent
+from app.security import contains_instruction_markers
 
 
 def validate_seo_content(content: LLMGeneratedContent) -> list[str]:
@@ -38,8 +39,17 @@ def validate_seo_content(content: LLMGeneratedContent) -> list[str]:
 def validate_generated_content(
     prepared: PreparedProduct, content: LLMGeneratedContent
 ) -> list[str]:
-    """Combine mechanical SEO checks with lexical grounding warnings."""
-    return [*validate_seo_content(content), *validate_grounding(prepared, content)]
+    """Combine mechanical checks, grounding and suspicious output markers."""
+    warnings = [*validate_seo_content(content), *validate_grounding(prepared, content)]
+    fields = [
+        content.seo_title,
+        content.seo_description,
+        *content.search_queries,
+        content.commercial_block,
+    ]
+    if any(contains_instruction_markers(field) for field in fields):
+        warnings.append("Сгенерированный текст содержит признаки управляющих инструкций.")
+    return warnings
 
 
 def build_generation_response(
@@ -51,6 +61,16 @@ def build_generation_response(
     The status "generated" means these checks passed, not that every statement
     has been independently verified or semantically fact-checked.
     """
+    if prepared.blocked:
+        if generated is not None:
+            raise ValueError("LLM content must not exist for blocked product data")
+        return GenerationResponse(
+            status="needs_review",
+            characteristics=prepared.product.specs.copy(),
+            missing_fields=list(prepared.missing_fields),
+            warnings=list(prepared.warnings),
+        )
+
     if not prepared.can_generate:
         if generated is not None:
             raise ValueError("LLM content must not exist for insufficient product data")
