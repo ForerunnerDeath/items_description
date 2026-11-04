@@ -50,8 +50,8 @@ class PreparedProduct:
 def prepare_product(product: ProductInput) -> PreparedProduct:
     """Exclude unknown specifications and check whether textual facts exist.
 
-    A nonempty description or at least one known specification permits an LLM
-    attempt; this is only a preliminary data-presence check, not a guarantee
+    A nonempty description or at least one technical specification permits an
+    LLM attempt; this is only a preliminary data-presence check, not a guarantee
     that an 800–1200 character description can be written faithfully.
     The presence of catalog identifiers alone does not make the input
     technically informative. An identifier-only product with a type
