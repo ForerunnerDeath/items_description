@@ -165,8 +165,7 @@ async def test_cli_rejects_invalid_output_schema() -> None:
     assert error.value.error_type == "InvalidResponse"
 
 
-@pytest.mark.asyncio
-async def test_cli_invalid_timeout_is_rejected() -> None:
+def test_cli_invalid_timeout_is_rejected() -> None:
     with pytest.raises(ValueError):
         CodexCLIClient(timeout_seconds=0)
 
