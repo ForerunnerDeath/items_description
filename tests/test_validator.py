@@ -188,7 +188,16 @@ def test_catalog_identifiers_only_mark_generated_draft_for_review() -> None:
         )
     )
 
-    response = build_generation_response(prepared, make_content())
+    content = make_content(
+        seo_title="ОВЕН МК110-224.8Д.4Р [М01]",
+        search_queries=[
+            "ОВЕН МК110-224.8Д.4Р [М01]",
+            "модуль дискретных сигналов ОВЕН",
+            "артикул 58953",
+        ],
+        commercial_block="Комбинированный модуль ввода вывода ОВЕН.",
+    )
+    response = build_generation_response(prepared, content)
 
     assert response.status == "needs_review"
     assert response.characteristics == {
