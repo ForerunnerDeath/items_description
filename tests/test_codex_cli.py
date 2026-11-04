@@ -1,6 +1,7 @@
 """Codex CLI adapter tests: no installed CLI, network or real model needed."""
 
 import json
+import subprocess
 from pathlib import Path
 from typing import cast
 from unittest.mock import AsyncMock, patch
@@ -213,3 +214,99 @@ def test_missing_cli_maps_to_502_without_leaking_details() -> None:
 
     assert response.status_code == 502
     assert response.json() == {"detail": "LLM generation failed."}
+
+
+@pytest.mark.asyncio
+async def test_windows_selector_loop_falls_back_to_thread() -> None:
+    """Windows reload loop lacks async subprocess support."""
+    subprocess_calls = 0
+
+    def fake_run(
+        args: list[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[bytes]:
+        nonlocal subprocess_calls
+        subprocess_calls += 1
+        assert kwargs["capture_output"] is True
+        assert kwargs["check"] is False
+        assert kwargs["timeout"] == 20
+        assert isinstance(kwargs["input"], bytes)
+        assert b"System" in kwargs["input"]
+        output = Path(args[args.index("--output-last-message") + 1])
+        assert str(output.parent) == kwargs["cwd"]
+        output.write_text(valid_answer().model_dump_json(), encoding="utf-8")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    with (
+        patch("app.codex_client.shutil.which", return_value="codex"),
+        patch(
+            "app.codex_client.asyncio.create_subprocess_exec",
+            side_effect=NotImplementedError,
+        ),
+        patch("app.codex_client.subprocess.run", side_effect=fake_run),
+    ):
+        result = await CodexCLIClient(
+            timeout_seconds=20
+        ).generate_structured(system_prompt="System", user_prompt="Data")
+
+    assert result == valid_answer()
+    assert subprocess_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_windows_fallback_nonzero_exit_is_handled() -> None:
+    with (
+        patch("app.codex_client.shutil.which", return_value="codex"),
+        patch(
+            "app.codex_client.asyncio.create_subprocess_exec",
+            side_effect=NotImplementedError,
+        ),
+        patch(
+            "app.codex_client.subprocess.run",
+            return_value=subprocess.CompletedProcess(["codex"], 1, b"", b""),
+        ),
+    ):
+        with pytest.raises(LLMClientError) as error:
+            await CodexCLIClient().generate_structured(
+                system_prompt="System", user_prompt="Data"
+            )
+
+    assert error.value.error_type == "CodexExecutionError"
+
+
+@pytest.mark.asyncio
+async def test_windows_fallback_timeout_is_handled() -> None:
+    with (
+        patch("app.codex_client.shutil.which", return_value="codex"),
+        patch(
+            "app.codex_client.asyncio.create_subprocess_exec",
+            side_effect=NotImplementedError,
+        ),
+        patch(
+            "app.codex_client.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd=["codex"], timeout=20),
+        ),
+    ):
+        with pytest.raises(LLMClientError) as error:
+            await CodexCLIClient().generate_structured(
+                system_prompt="System", user_prompt="Data"
+            )
+
+    assert error.value.error_type == "CodexTimeout"
+
+
+@pytest.mark.asyncio
+async def test_windows_fallback_launch_failure_is_handled() -> None:
+    with (
+        patch("app.codex_client.shutil.which", return_value="codex"),
+        patch(
+            "app.codex_client.asyncio.create_subprocess_exec",
+            side_effect=NotImplementedError,
+        ),
+        patch("app.codex_client.subprocess.run", side_effect=OSError("failed")),
+    ):
+        with pytest.raises(LLMClientError) as error:
+            await CodexCLIClient().generate_structured(
+                system_prompt="System", user_prompt="Data"
+            )
+
+    assert error.value.error_type == "CodexUnavailable"

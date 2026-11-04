@@ -6,6 +6,7 @@ This is not an OpenAI API replacement for a public production service.
 import asyncio
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -85,30 +86,55 @@ class CodexCLIClient:
                     stderr=asyncio.subprocess.PIPE,
                     cwd=str(root),
                 )
+            except NotImplementedError:
+                # Uvicorn --reload on Windows can use SelectorEventLoop, which
+                # does not implement asynchronous subprocess operations.
+                try:
+                    completed = await asyncio.to_thread(
+                        subprocess.run,
+                        args,
+                        input=prompt.encode("utf-8"),
+                        capture_output=True,
+                        timeout=self._timeout_seconds,
+                        cwd=str(root),
+                        check=False,
+                    )
+                except subprocess.TimeoutExpired as exc:
+                    raise LLMClientError(
+                        "Codex CLI generation timed out.",
+                        error_type="CodexTimeout",
+                    ) from exc
+                except OSError as exc:
+                    raise LLMClientError(
+                        "Unable to launch Codex CLI.",
+                        error_type="CodexUnavailable",
+                    ) from exc
+                returncode = completed.returncode
             except OSError as exc:
                 raise LLMClientError(
                     "Unable to launch Codex CLI.",
                     error_type="CodexUnavailable",
                 ) from exc
+            else:
+                try:
+                    await asyncio.wait_for(
+                        process.communicate(prompt.encode("utf-8")),
+                        timeout=self._timeout_seconds,
+                    )
+                except TimeoutError as exc:
+                    process.kill()
+                    await process.communicate()
+                    raise LLMClientError(
+                        "Codex CLI generation timed out.",
+                        error_type="CodexTimeout",
+                    ) from exc
+                except asyncio.CancelledError:
+                    process.kill()
+                    await process.communicate()
+                    raise
+                returncode = process.returncode
 
-            try:
-                await asyncio.wait_for(
-                    process.communicate(prompt.encode("utf-8")),
-                    timeout=self._timeout_seconds,
-                )
-            except TimeoutError as exc:
-                process.kill()
-                await process.communicate()
-                raise LLMClientError(
-                    "Codex CLI generation timed out.",
-                    error_type="CodexTimeout",
-                ) from exc
-            except asyncio.CancelledError:
-                process.kill()
-                await process.communicate()
-                raise
-
-            if process.returncode != 0:
+            if returncode != 0:
                 raise LLMClientError(
                     "Codex CLI did not complete successfully.",
                     error_type="CodexExecutionError",
