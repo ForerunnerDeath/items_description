@@ -105,9 +105,7 @@ def prepare_product(product: ProductInput) -> PreparedProduct:
             "отсутствуют. Черновик SEO-карточки требует проверки."
         )
 
-    has_technical_specs = any(
-        not _is_identifier_key(name) for name in known_specs
-    )
+    has_technical_specs = any(not _is_identifier_key(name) for name in known_specs)
     can_generate = bool(has_technical_specs or description)
     if not can_generate:
         warnings.append(
