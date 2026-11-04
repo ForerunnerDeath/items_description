@@ -171,9 +171,7 @@ def test_provider_error_returns_sanitized_502_and_closes_client() -> None:
 
 
 def test_persistent_structured_output_error_returns_502() -> None:
-    fake = FakeLLM(
-        [LLMClientError("invalid JSON", error_type="InvalidResponse")] * 3
-    )
+    fake = FakeLLM([LLMClientError("invalid JSON", error_type="InvalidResponse")] * 3)
 
     code, body = post_with_fake_llm(product_json(), fake)
 
