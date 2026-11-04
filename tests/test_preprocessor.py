@@ -121,3 +121,60 @@ def test_description_placeholder_is_not_treated_as_context() -> None:
     assert result.can_generate is False
     assert result.product.description == ""
     assert "description" in result.missing_fields
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "комбинированный модуль ввода/вывода дискретных сигналов",
+        "пирометр, инфракрасный термометр с лазерным целеуказателем",
+    ],
+)
+def test_feed_identifiers_require_review_but_allow_draft(
+    description: str,
+) -> None:
+    product = ProductInput(
+        name="Прибор",
+        manufacturer="ОВЕН",
+        specs={"Артикул": "58953", "Код товара": "63483"},
+        description=description,
+    )
+
+    result = prepare_product(product)
+
+    assert result.can_generate is True
+    assert result.missing_fields == ("technical_specs",)
+    assert len(result.warnings) == 1
+    assert "технические характеристики" in result.warnings[0]
+    assert result.product.specs == product.specs
+
+
+def test_identifiers_only_without_description_are_insufficient() -> None:
+    result = prepare_product(
+        ProductInput(
+            name="Прибор",
+            manufacturer="ОВЕН",
+            specs={"Артикул": "58953", "Код товара": "63483"},
+        )
+    )
+
+    assert result.can_generate is False
+    assert result.missing_fields == ("description", "technical_specs")
+    assert any("Недостаточно данных" in item for item in result.warnings)
+
+
+def test_identifier_key_normalization_and_mixed_technical_specs() -> None:
+    result = prepare_product(
+        ProductInput(
+            name="Прибор",
+            specs={
+                " АРТИКУЛ ": "ABC",
+                "  Код   товара ": "123",
+                "Диапазон измерений": "-30 … +400 °C",
+            },
+        )
+    )
+
+    assert result.can_generate is True
+    assert "technical_specs" not in result.missing_fields
+    assert not result.warnings
