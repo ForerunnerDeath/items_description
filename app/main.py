@@ -2,9 +2,10 @@
 
 from fastapi import FastAPI, HTTPException
 
+from app.codex_client import CodexCLIClient
 from app.config import get_settings
 from app.generator import generate_product_description
-from app.llm_client import LLMClientError, OpenAICompatibleLLMClient
+from app.llm_client import LLMClient, LLMClientError, OpenAICompatibleLLMClient
 from app.preprocessor import prepare_product
 from app.schemas import GenerationResponse, ProductInput
 from app.validator import build_generation_response
@@ -12,9 +13,15 @@ from app.validator import build_generation_response
 app = FastAPI(title="Items Description", version="0.1.0")
 
 
-def build_llm_client() -> OpenAICompatibleLLMClient:
+def build_llm_client() -> LLMClient:
     """Create a client only for a product that needs LLM generation."""
     settings = get_settings()
+    if settings.backend == "codex_cli":
+        return CodexCLIClient(
+            timeout_seconds=settings.codex_timeout_seconds,
+            model=settings.codex_model,
+        )
+
     if not settings.model.strip() or (
         not settings.api_key.strip() and not settings.base_url.strip()
     ):

@@ -1,6 +1,7 @@
 """Configuration for the optional OpenAI-compatible LLM backend."""
 
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,11 +15,14 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    backend: Literal["openai", "codex_cli"] = "openai"
     model: str = ""
     api_key: str = ""
     base_url: str = ""
     max_tokens: int = Field(default=2048, gt=0)
     timeout_seconds: float = Field(default=30.0, gt=0)
+    codex_timeout_seconds: float = Field(default=180.0, gt=0)
+    codex_model: str = ""
 
 
 @lru_cache
