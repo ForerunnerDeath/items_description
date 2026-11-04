@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -20,9 +21,7 @@ class FakeProcess:
         self.inputs: list[bytes | None] = []
         self.killed = False
 
-    async def communicate(
-        self, input: bytes | None = None
-    ) -> tuple[bytes, bytes]:
+    async def communicate(self, input: bytes | None = None) -> tuple[bytes, bytes]:
         self.inputs.append(input)
         return b"", b""
 
@@ -61,7 +60,7 @@ async def test_cli_uses_temp_directory_and_strict_schema() -> None:
         schema = Path(args[args.index("--output-schema") + 1])
         data: dict[str, object] = json.loads(schema.read_text(encoding="utf-8"))
         assert data["additionalProperties"] is False
-        assert set(data["required"]) == {
+        assert set(cast(list[str], data["required"])) == {
             "seo_title",
             "seo_description",
             "search_queries",
@@ -99,9 +98,7 @@ async def test_missing_codex_is_a_controlled_error() -> None:
     with patch("app.codex_client.shutil.which", return_value=None):
         client = CodexCLIClient()
         with pytest.raises(LLMClientError) as error:
-            await client.generate_structured(
-                system_prompt="System", user_prompt="Data"
-            )
+            await client.generate_structured(system_prompt="System", user_prompt="Data")
 
     assert error.value.error_type == "CodexUnavailable"
 
@@ -117,9 +114,7 @@ async def test_nonzero_exit_is_a_controlled_error_without_leaking_cli_logs() -> 
     ):
         client = CodexCLIClient()
         with pytest.raises(LLMClientError) as error:
-            await client.generate_structured(
-                system_prompt="System", user_prompt="Data"
-            )
+            await client.generate_structured(system_prompt="System", user_prompt="Data")
 
     assert error.value.error_type == "CodexExecutionError"
 
@@ -135,9 +130,7 @@ async def test_output_file_missing_is_a_controlled_error() -> None:
     ):
         client = CodexCLIClient()
         with pytest.raises(LLMClientError) as error:
-            await client.generate_structured(
-                system_prompt="System", user_prompt="Data"
-            )
+            await client.generate_structured(system_prompt="System", user_prompt="Data")
 
     assert error.value.error_type == "EmptyResponse"
 
@@ -158,9 +151,7 @@ async def test_cli_rejects_invalid_output_schema() -> None:
     ):
         client = CodexCLIClient()
         with pytest.raises(LLMClientError) as error:
-            await client.generate_structured(
-                system_prompt="System", user_prompt="Data"
-            )
+            await client.generate_structured(system_prompt="System", user_prompt="Data")
 
     assert error.value.error_type == "InvalidResponse"
 
