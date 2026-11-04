@@ -3,8 +3,6 @@
 import json
 import subprocess
 from pathlib import Path
-from typing import cast
-from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -231,7 +229,7 @@ async def test_windows_selector_loop_falls_back_to_thread() -> None:
         assert kwargs["check"] is False
         assert kwargs["timeout"] == 20
         assert isinstance(kwargs["input"], bytes)
-        assert b"System" in cast(bytes, kwargs["input"])
+        assert b"System" in kwargs["input"]
         output = Path(args[args.index("--output-last-message") + 1])
         assert str(output.parent) == kwargs["cwd"]
         output.write_text(valid_answer().model_dump_json(), encoding="utf-8")
@@ -245,9 +243,9 @@ async def test_windows_selector_loop_falls_back_to_thread() -> None:
         ),
         patch("app.codex_client.subprocess.run", side_effect=fake_run),
     ):
-        result = await CodexCLIClient(
-            timeout_seconds=20
-        ).generate_structured(system_prompt="System", user_prompt="Data")
+        result = await CodexCLIClient(timeout_seconds=20).generate_structured(
+            system_prompt="System", user_prompt="Data"
+        )
 
     assert result == valid_answer()
     assert subprocess_calls == 1
