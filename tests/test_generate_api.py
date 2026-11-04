@@ -1,5 +1,6 @@
 """HTTP-level tests for /generate, without real provider calls."""
 
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -146,7 +147,8 @@ def test_obvious_prompt_injection_requires_review_without_llm() -> None:
     assert body["status"] == "needs_review"
     assert body["seo_title"] is None
     assert body["characteristics"] == {"Выходное напряжение": "24 В"}
-    assert any("управляющих инструкций" in warning for warning in body["warnings"])
+    warnings = cast(list[str], body["warnings"])
+    assert any("управляющих инструкций" in warning for warning in warnings)
     factory.assert_not_called()
 
 
