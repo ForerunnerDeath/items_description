@@ -241,7 +241,19 @@ async def test_feed_only_generates_once_without_retrying_missing_specs() -> None
         specs={"Артикул": "0560 8311", "Код товара": "12387"},
         description="пирометр, инфракрасный термометр с лазерным целеуказателем",
     )
-    client = FakeLLM([make_content()])
+    client = FakeLLM(
+        [
+            make_content(
+                seo_title="Пирометр testo 830-T1",
+                search_queries=[
+                    "пирометр testo 830-T1",
+                    "инфракрасный термометр Testo",
+                    "Testo артикул 0560 8311",
+                ],
+                commercial_block="Пирометр с лазерным целеуказателем.",
+            )
+        ]
+    )
 
     result = await generate_product_description(product, client)
 
