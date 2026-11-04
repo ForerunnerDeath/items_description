@@ -227,3 +227,24 @@ def test_openapi_documents_generation_endpoint() -> None:
     assert "/generate" in api["paths"]
     assert "post" in api["paths"]["/generate"]
     assert "GenerationResponse" in api["components"]["schemas"]
+
+
+def test_feed_only_product_returns_draft_with_review_warning() -> None:
+    fake = FakeLLM([model_output()])
+    data: dict[str, object] = {
+        "name": "МК110-224.8Д.4Р [М01]",
+        "manufacturer": "ОВЕН",
+        "specs": {"Артикул": "58953", "Код товара": "63483"},
+        "description": "комбинированный модуль ввода/вывода дискретных сигналов",
+    }
+
+    code, body = post_with_fake_llm(data, fake)
+
+    assert code == 200
+    assert body["status"] == "needs_review"
+    assert body["missing_fields"] == ["technical_specs"]
+    assert body["characteristics"] == data["specs"]
+    assert body["seo_description"] is not None
+    assert "технические характеристики" in str(body["warnings"])
+    assert fake.calls == 1
+    assert fake.closed
