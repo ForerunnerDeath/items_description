@@ -230,7 +230,19 @@ def test_openapi_documents_generation_endpoint() -> None:
 
 
 def test_feed_only_product_returns_draft_with_review_warning() -> None:
-    fake = FakeLLM([model_output()])
+    fake = FakeLLM(
+        [
+            model_output(
+                seo_title="ОВЕН МК110-224.8Д.4Р [М01]",
+                search_queries=[
+                    "ОВЕН МК110-224.8Д.4Р [М01]",
+                    "модуль ввода вывода ОВЕН",
+                    "ОВЕН артикул 58953",
+                ],
+                commercial_block="Комбинированный модуль ОВЕН.",
+            )
+        ]
+    )
     data: dict[str, object] = {
         "name": "МК110-224.8Д.4Р [М01]",
         "manufacturer": "ОВЕН",
