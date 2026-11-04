@@ -182,7 +182,7 @@ def test_persistent_structured_output_error_returns_502() -> None:
 
 
 def test_missing_llm_configuration_returns_503() -> None:
-    settings = Settings(model="", api_key="", base_url="")
+    settings = Settings(backend="openai", model="", api_key="", base_url="")
     with patch("app.main.get_settings", return_value=settings):
         with TestClient(app) as client:
             response = client.post("/generate", json=product_json())
@@ -193,6 +193,7 @@ def test_missing_llm_configuration_returns_503() -> None:
 
 def test_factory_passes_config_without_disclosing_key() -> None:
     settings = Settings(
+        backend="openai",
         model="test-model",
         api_key="secret-test-key",
         base_url="http://localhost:11434/v1",
