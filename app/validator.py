@@ -48,7 +48,9 @@ def validate_generated_content(
         content.commercial_block,
     ]
     if any(contains_instruction_markers(field) for field in fields):
-        warnings.append("Сгенерированный текст содержит признаки управляющих инструкций.")
+        warnings.append(
+            "Сгенерированный текст содержит признаки управляющих инструкций."
+        )
     return warnings
 
 
