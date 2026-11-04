@@ -69,7 +69,7 @@ def test_plain_product_with_instruction_like_terminology_is_not_blocked() -> Non
 
     assert prepared.blocked is False
     assert prepared.can_generate is True
-    assert prepared.warnings == []
+    assert prepared.warnings == ()
 
 
 def test_newline_in_data_is_escaped_and_remains_in_json_value() -> None:
