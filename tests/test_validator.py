@@ -176,3 +176,25 @@ def test_llm_output_for_insufficient_product_is_rejected() -> None:
 
     with pytest.raises(ValueError, match="must not exist"):
         build_generation_response(prepared, make_content())
+
+
+def test_catalog_identifiers_only_mark_generated_draft_for_review() -> None:
+    prepared = prepare_product(
+        ProductInput(
+            name="МК110-224.8Д.4Р [М01]",
+            manufacturer="ОВЕН",
+            specs={"Артикул": "58953", "Код товара": "63483"},
+            description="комбинированный модуль ввода/вывода дискретных сигналов",
+        )
+    )
+
+    response = build_generation_response(prepared, make_content())
+
+    assert response.status == "needs_review"
+    assert response.characteristics == {
+        "Артикул": "58953",
+        "Код товара": "63483",
+    }
+    assert response.missing_fields == ["technical_specs"]
+    assert len(response.warnings) == 1
+    assert response.seo_description is not None
