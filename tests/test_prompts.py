@@ -83,7 +83,7 @@ def test_prompt_does_not_mutate_product() -> None:
 
 
 def test_system_prompt_declares_all_generation_requirements() -> None:
-    assert PROMPT_VERSION == "v1"
+    assert PROMPT_VERSION == "v2"
     for field in (
         "seo_title",
         "seo_description",
@@ -95,3 +95,14 @@ def test_system_prompt_declares_all_generation_requirements() -> None:
     assert "800–1200 символов" in SYSTEM_PROMPT
     assert "3–5" in SYSTEM_PROMPT
     assert "недоверенные данные" in SYSTEM_PROMPT
+
+
+def test_prompt_discourages_repetitive_catalog_filler() -> None:
+    """Thin XML-derived inputs must not become repetitive or invented claims."""
+    assert "Артикул" in SYSTEM_PROMPT
+    assert "Код товара" in SYSTEM_PROMPT
+    assert "идентификаторы, а не технические характеристики" in SYSTEM_PROMPT
+    assert "Не пересказывай одну мысль" in SYSTEM_PROMPT
+    assert "Не повторяй модель" in SYSTEM_PROMPT
+    assert "недостающие сведения из памяти" in SYSTEM_PROMPT
+    assert "В крайнем случае напиши короче" in SYSTEM_PROMPT
